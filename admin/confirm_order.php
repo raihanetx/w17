@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['order_id_to_change'])
         exit();
     }
 
-    $ordersFilePath = __DIR__ . '/orders.json';
+    $ordersFilePath = __DIR__ . '/../orders.json';
     $allOrdersCurrentlyInFile = [];
     $orderFoundAndUpdated = false;
 
