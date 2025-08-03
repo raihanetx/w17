@@ -5,7 +5,7 @@ session_start();
 $primary_color = "#8F87F1"; // এটি আপনার index.html এর CSS ভ্যারিয়েবল অনুযায়ী দিন
 
 if (isset($_SESSION['admin_logged_in_thinkplusbd']) && $_SESSION['admin_logged_in_thinkplusbd'] === true) {
-    header("Location: admin_dashboard.php");
+    header("Location: /admin/admin_dashboard.php");
     exit();
 }
 ?>
@@ -107,7 +107,7 @@ if (isset($_SESSION['admin_logged_in_thinkplusbd']) && $_SESSION['admin_logged_i
         <div class="login-container">
             <img src="https://i.postimg.cc/4NtztqPt/IMG-20250603-130207-removebg-preview-1.png" alt="THINK PLUS BD Logo" class="logo-image">
             <h2>Admin Panel Login</h2>
-            <form method="POST" action="admin_dashboard.php">
+            <form method="POST" action="/admin/admin_dashboard.php">
                 <div class="form-group">
                     <label for="adminPasswordInput">Password</label>
                     <input type="password" name="password" id="adminPasswordInput" required>

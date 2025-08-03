@@ -8,22 +8,22 @@ $correct_admin_password = "YOUR_VERY_STRONG_AND_UNIQUE_PASSWORD_HERE"; // <<<<<<
 if (isset($_POST['password'])) {
     if ($_POST['password'] === $correct_admin_password) {
         $_SESSION['admin_logged_in_thinkplusbd'] = true;
-        header("Location: admin_dashboard.php");
+        header("Location: /admin/admin_dashboard.php");
         exit();
     } else {
-        header("Location: admin_login.php?error=1");
+        header("Location: /admin/admin_login.php?error=1");
         exit();
     }
 }
 
 if (!isset($_SESSION['admin_logged_in_thinkplusbd']) || $_SESSION['admin_logged_in_thinkplusbd'] !== true) {
-    header("Location: admin_login.php");
+    header("Location: /admin/admin_login.php");
     exit();
 }
 
 if (isset($_GET['logout']) && $_GET['logout'] == 1) {
     session_destroy();
-    header("Location: admin_login.php");
+    header("Location: /admin/admin_login.php");
     exit();
 }
 
