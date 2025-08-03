@@ -10,12 +10,30 @@ $coupons = file_exists($coupons_file_path) ? json_decode(file_get_contents($coup
 if (!is_array($coupons)) {
     $coupons = [];
 }
+
+$coupon_to_edit = null;
+$coupon_code = $_GET['code'] ?? null;
+
+if ($coupon_code) {
+    foreach ($coupons as $coupon) {
+        if ($coupon['code'] === $coupon_code) {
+            $coupon_to_edit = $coupon;
+            break;
+        }
+    }
+}
+
+if (!$coupon_to_edit) {
+    // Optional: Redirect or show an error if coupon not found
+    header("Location: coupons.php?error=not_found");
+    exit();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Manage Coupons - Admin Panel</title>
+    <title>Edit Coupon - Admin Panel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -36,11 +54,6 @@ if (!is_array($coupons)) {
         input[type="text"], input[type="number"], input[type="date"] { padding: .75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1em; }
         .btn { padding: .75rem 1.5rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; }
         .btn-primary { background-color: var(--primary-color); color: white; }
-        table { width: 100%; border-collapse: collapse; margin-top: 2rem; }
-        th, td { padding: 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
-        th { background-color: #f9fafb; }
-        .actions a { color: var(--primary-color); text-decoration: none; margin-right: 1rem; }
-        .actions a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -61,74 +74,30 @@ if (!is_array($coupons)) {
         </aside>
         <main class="admin-main-content">
             <div class="content-card">
-                <h2>Add New Coupon</h2>
+                <h2>Edit Coupon: <?php echo htmlspecialchars($coupon_to_edit['code']); ?></h2>
                 <form action="save_coupon.php" method="POST">
+                    <input type="hidden" name="is_edit_mode" value="1">
+                    <input type="hidden" name="original_code" value="<?php echo htmlspecialchars($coupon_to_edit['code']); ?>">
                     <div class="form-grid">
                         <div class="form-group">
                             <label for="code">Coupon Code</label>
-                            <input type="text" id="code" name="code" placeholder="e.g., SALE20" required>
+                            <input type="text" id="code" name="code" value="<?php echo htmlspecialchars($coupon_to_edit['code']); ?>" required>
                         </div>
                         <div class="form-group">
                             <label for="discount">Discount %</label>
-                            <input type="number" id="discount" name="discount" placeholder="e.g., 20" required step="0.01">
+                            <input type="number" id="discount" name="discount" value="<?php echo htmlspecialchars($coupon_to_edit['discount']); ?>" required step="0.01">
                         </div>
                         <div class="form-group">
                             <label for="usageLimit">Usage Limit</label>
-                            <input type="number" id="usageLimit" name="usageLimit" placeholder="0 for unlimited">
+                            <input type="number" id="usageLimit" name="usageLimit" value="<?php echo htmlspecialchars($coupon_to_edit['usageLimit'] ?? '0'); ?>" placeholder="0 for unlimited">
                         </div>
                         <div class="form-group">
                             <label for="expiryDate">Expiry Date</label>
-                            <input type="date" id="expiryDate" name="expiryDate">
+                            <input type="date" id="expiryDate" name="expiryDate" value="<?php echo htmlspecialchars($coupon_to_edit['expiryDate'] ?? ''); ?>">
                         </div>
-                        <button type="submit" class="btn btn-primary">Add Coupon</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
                     </div>
                 </form>
-
-                <h2>Existing Coupons</h2>
-                <div style="overflow-x:auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Discount</th>
-                                <th>Usage</th>
-                                <th>Expires On</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (!empty($coupons)): ?>
-                                <?php foreach ($coupons as $coupon): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($coupon['code']); ?></td>
-                                        <td><?php echo htmlspecialchars($coupon['discount']); ?>%</td>
-                                        <td>
-                                            <?php
-                                                $timesUsed = $coupon['timesUsed'] ?? 0;
-                                                $usageLimit = $coupon['usageLimit'] ?? 0;
-                                                echo htmlspecialchars($timesUsed) . ' / ' . ($usageLimit > 0 ? htmlspecialchars($usageLimit) : '∞');
-                                            ?>
-                                        </td>
-                                        <td>
-                                            <?php
-                                                $expiryDate = $coupon['expiryDate'] ?? '';
-                                                echo $expiryDate ? htmlspecialchars($expiryDate) : 'Never';
-                                            ?>
-                                        </td>
-                                        <td class="actions">
-                                            <a href="edit_coupon.php?code=<?php echo urlencode($coupon['code']); ?>">Edit</a>
-                                            <a href="delete_coupon.php?code=<?php echo urlencode($coupon['code']); ?>" onclick="return confirm('Are you sure?')">Delete</a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="5" style="text-align: center;">No coupons found.</td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </main>
     </div>

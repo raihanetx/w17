@@ -2875,21 +2875,26 @@ function renderReviews(product) {
     `;
     reviewsTab.insertAdjacentHTML('beforeend', reviewInputHTML);
 
-    if (!product.reviews || product.reviews.length === 0) {
+    const approvedReviews = (product.reviews || []).filter(r => r.status === 'approved');
+
+    if (approvedReviews.length === 0) {
         reviewsTab.insertAdjacentHTML('beforeend', '<p style="padding: 1rem 0; text-align: center; color: #777;">There are no reviews for this product yet. Be the first to write one!</p>');
         return;
     }
+
+    // Sort reviews: featured first, then by date newest first
+    approvedReviews.sort((a, b) => {
+        if ((a.featured ?? false) && !(b.featured ?? false)) return -1;
+        if (!(a.featured ?? false) && (b.featured ?? false)) return 1;
+        return new Date(b.date) - new Date(a.date);
+    });
 
     const reviewsContainer = document.createElement('div');
     reviewsContainer.className = 'reviews-list';
 
     const reviewsToShow = 3;
-    const allReviews = product.reviews;
 
-    // Sort reviews by date, newest first
-    allReviews.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    allReviews.forEach((review, index) => {
+    approvedReviews.forEach((review, index) => {
         const reviewElement = document.createElement('div');
         reviewElement.className = 'review-item';
         if (index >= reviewsToShow) {
@@ -2923,10 +2928,10 @@ function renderReviews(product) {
 
     reviewsTab.appendChild(reviewsContainer);
 
-    if (allReviews.length > reviewsToShow) {
+    if (approvedReviews.length > reviewsToShow) {
         const seeMoreBtn = document.createElement('button');
         seeMoreBtn.className = 'see-more-reviews-btn';
-        seeMoreBtn.textContent = `See All ${allReviews.length} Reviews`;
+        seeMoreBtn.textContent = `See All ${approvedReviews.length} Reviews`;
         seeMoreBtn.onclick = function(e) {
             e.preventDefault();
             const hiddenReviews = reviewsContainer.querySelectorAll('.review-item[style*="display: none"]');
@@ -2993,11 +2998,12 @@ function renderReviews(product) {
     }
 
     // Tabs for description and reviews
+    const approvedReviewsCount = (product.reviews || []).filter(r => r.status === 'approved').length;
     const tabsHTML = `
         <div class="product-info-tabs">
             <div class="tab-headers">
                 <button class="tab-link active" onclick="openTab(event, 'descriptionTab')">Description</button>
-                <button class="tab-link" onclick="openTab(event, 'reviewsTab')">Reviews (${product.reviews ? product.reviews.length : 0})</button>
+                <button class="tab-link" onclick="openTab(event, 'reviewsTab')">Reviews (${approvedReviewsCount})</button>
             </div>
             <div id="descriptionTab" class="tab-content" style="display:block;">
                 <div class="expandable-content">
@@ -3410,7 +3416,7 @@ function toggleSeeMore(btn, seeLess) {
             }
         }
 
-        function submitReview() {
+        async function submitReview() {
             const modal = document.getElementById('review-modal');
             if (!modal) return;
 
@@ -3425,46 +3431,41 @@ function toggleSeeMore(btn, seeLess) {
             }
 
             const rating = parseInt(ratingInput.value, 10);
-            const productIndex = allProductsData.findIndex(p => p.id === productId);
 
-            if (productIndex === -1) {
-                showToast('Could not submit review. Product not found.', 'error');
-                return;
-            }
-
-            const product = allProductsData[productIndex];
-
-            const newReview = {
-                id: Date.now(),
+            const reviewData = {
+                product_id: productId,
                 author: name,
-                date: new Date().toISOString().split('T')[0],
                 rating: rating,
-                text: reviewText,
-                avatar: null
+                text: reviewText
             };
 
-            if (!product.reviews) {
-                product.reviews = [];
+            try {
+                const response = await fetch('save_review.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(reviewData),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Thank you! Your review is pending approval.', 'success');
+                    closeReviewModal();
+                    // Reset form fields
+                    document.getElementById('review-name').value = '';
+                    document.getElementById('review-text').value = '';
+                    const checkedRating = document.querySelector('input[name="rating"]:checked');
+                    if (checkedRating) checkedRating.checked = false;
+                    document.querySelectorAll("#star-rating label").forEach(l => l.classList.remove("selected"));
+                } else {
+                    showToast(result.message || 'An error occurred.', 'error');
+                }
+            } catch (error) {
+                showToast('Failed to submit review. Please try again.', 'error');
+                console.error('Error submitting review:', error);
             }
-
-            product.reviews.unshift(newReview);
-
-            renderReviews(product);
-
-            const reviewTabButton = document.querySelector('.tab-link[onclick*="reviewsTab"]');
-            if(reviewTabButton) {
-                reviewTabButton.textContent = `Reviews (${product.reviews.length})`;
-            }
-
-            showToast('Thank you! Your review has been submitted.', 'success');
-            closeReviewModal();
-
-            // Reset form fields
-            document.getElementById('review-name').value = '';
-            document.getElementById('review-text').value = '';
-            const checkedRating = document.querySelector('input[name="rating"]:checked');
-            if (checkedRating) checkedRating.checked = false;
-            document.querySelectorAll("#star-rating label").forEach(l => l.classList.remove("selected"));
         }
 
         document.addEventListener('DOMContentLoaded', () => {
